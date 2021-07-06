@@ -17,16 +17,24 @@ require (
 
 当我们需要使用某个第三方库时，就是通过go get go.uber.org/zap 下载依赖包，并自动在go.mod文件中记录。这里引申出几个问题
 
-1. go get go.uber.org/zap 的工作原理是什么？
-go get 其实就是 git clone。默认使用https的方式。如go get go.uber.org/zap 其实本质为 git clone https://go.uber.org/zap.git
+1. go get go.uber.org/zap 的工作原理是什么？  
+go get 其实就是 git clone + go install。clone默认使用https的方式，如：go get go.uber.org/zap 其实本质为 git clone https://go.uber.org/zap.git
 
-2. 我们自己写的代码包 module应该怎么命名才可以被go get
+2. 我们自己写的代码包 module应该怎么命名才可以被go get？  
 了解了go get的本质后，module应该怎么命名就很清楚了。只要你定义的包名可以正确的被转化成可别下载的git仓库即可。如我有个仓库名为gobase在github上
 进行保持，且仓库在fizzse这个用户下。那么名字就应该为github.com/fizzse/gobasse。如果在gitee.com上面，那么应该定义为gitee.com/fizzse/gobasse才可以被go get 下来
    
-3. 怎么go get 私有仓库的代码
-通过上面两个问题的阐述，如何go get 私有仓库思路应该很清晰了。就是如果你可以git clone xxx。那么你就可以go get xxx。由于默认是https的方式需要输入密码，、 
-所以我们只要将https替换为ssh方式(前提配置ssh私钥)即可。git config --global url."git@github.com:".insteadOf "https://github.com/"。如果是自建git仓库同理
-拿gitee举例 git config --global url."git@gitee.com:".insteadOf "https://gitee.com/"。然后设置export GOPRIVATE=git@github.com:fizzse。
-   
-到此，我们就说明了go get的问题。但是有一个问题还没有说完 那就是 go get 可执行文件
+3. 怎么go get 私有仓库的代码？  
+通过上面两个问题的阐述，如何go get 私有仓库思路应该很清晰了。就是如果你可以git clone xxx。那么你就可以go get xxx。由于默认是https的方式需要输入密码，
+所以我们只要将https替换为ssh方式(前提配置ssh私钥)即可。
+
+```shell
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+export GOPRIVATE=git@github.com:fizzse
+```   
+
+如果是自建git仓库同理,拿gitee举例：
+```shell
+git config --global url."git@gitee.com:".insteadOf "https://gitee.com/"
+export GOPRIVATE=git@gitee.com:fizzse
+```
