@@ -1,7 +1,7 @@
 ## ELK日志系统
 
 ### 背景：
-- 随着服务系统的不断扩大与拆分，排查问题变得十分复杂，将所有服务的日志采集到一起，并且各服务间的日志可以串起来，这项工作就变得很重要了。
+- 随着服务系统的不断扩大与拆分，排查问题变得十分困难。将所有服务的日志采集到一起，并且各服务间的日志可以串起来，这项工作就变得很重要了。
   日志的串接属于trace的范畴，在此不展开。
 
 ### 选型：
@@ -14,10 +14,16 @@
 ### 采集工具-Filebeat
 - logstash采集日志 普遍反映性能不行。后来推出了beats，日志采集就是filebeat
 - filebeat可以采集文本日志，docker标准输出的日志。
-- 但是docker的配置的是容器id，由于docker发生重启会导致容器id变化，该方式不灵活，战略上弃用。
-- 或者自动发现所有的容器，事情突然变得不可控了起来。有一些docker运行的日志我们并不想要，所以也不建议使用。
-- 最终方案就是服务将日志输出的文件，每台服务器上部署一个filebeat采集日志。即使由于各种问题导致日志没有采集到，本地也还有保留，可用性也是更高的。
-- filebeat会在文件中记录当前读的offset，不用担心filebeat挂掉导致日志丢失与重复消费的问题。
+
+- 日志输出到Docker标准输出(不推荐使用)
+  1. 配置的是容器id，docker发生重启会导致容器id变化，该方式不灵活，战略上弃用
+  2. 自动发现所有的容器，事情突然变得不可控了起来。有一些docker运行的日志我们并不想要，所以也不建议使用。
+  
+- 日志输出到文件
+  1. 每台服务器上部署一个filebeat采集日志。即使由于各种问题导致日志没有采集到，本地也还有保留，可用性也是更高的。
+  2. 将宿主机的日志目录映射到filebeat的容器，建议路径要一致
+  
+- filebeat会在文件中（registry/filebeat/log.json）记录当前读的offset，不用担心filebeat挂掉导致日志丢失与重复消费的问题。
 - filebeat新版镜像内置了kibana，所以其他的组件都可以省了。可用性很低，不建议使用
 - filebeat可以将日志输出到kafka、logstash、es。在此建议先到kafka，再到es 理由如下
     - 写入kafka后，后面的组件挂了数据不会丢
@@ -26,7 +32,7 @@
     - kafka->es的流程需要借助logstash，这下所有组件就都用上了
     - kafka->es的流程也可以借助flink完成，本人没有研究，在此就不展开了
 
-- 为什么使用host模式 这样会使用宿主机的时区 不然的话会使用utc
+- 容器为什么使用host模式 这样会使用宿主机的时区 不然的话会使用utc
 - 如果要采集docker日志，需要（docker in docker）模式，即需要将宿主机 /var/run/docker.sock 映射到容器内
 - Filebeat Docker-compose 文件如下
 
@@ -109,7 +115,7 @@ input {
   kafka { 
     bootstrap_servers => ["127.0.0.1:9092"] 
     group_id => "logstash-server-log" 
-    topics => ["filebeat_log_qingDaily"] 
+    topics => ["filebeat_log_qingServer"] 
     codec => json 
  } 
 } 
