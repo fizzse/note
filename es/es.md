@@ -6,7 +6,9 @@
 
 ### 选型：
 - Flume （这个我没有研究，好像用的也比较多）
-- ELK （es+logstash+kibana）变种（filebeat+kafka+logstash+es+kibana）。后者用的比较多，需要注意的是ELK各组件的版本一定要一致。
+- ELK （es+logstash+kibana）变种（filebeat+kafka+logstash+es+kibana）。后者用的比较多。
+- 需要注意的是ELK各组件的版本一定要一致，本文中的版本是7.10.0
+- 部署全部使用Docker，部署更简单，也更干净
 
 
 ### 采集工具-Filebeat
@@ -25,7 +27,7 @@
     - kafka->es的流程也可以借助flink完成，本人没有研究，在此就不展开了
 
 - 为什么使用host模式 这样会使用宿主机的时区 不然的话会使用utc
-- 如果要采集docker日志，需要docker in docker 即需要将宿主机 /var/run/docker.sock 映射到容器内
+- 如果要采集docker日志，需要（docker in docker）模式，即需要将宿主机 /var/run/docker.sock 映射到容器内
 - Filebeat Docker-compose 文件如下
 
 ```yaml
@@ -43,7 +45,6 @@ services:
       - $PWD/config/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml:ro 
       - $PWD/registry:/usr/share/filebeat/data/registry 
       - /data/logs:/data/logs 
-      - /data/cleargrass/logs:/data/cleargrass/logs 
     restart: always 
     logging: 
       driver: "json-file" 
@@ -51,7 +52,7 @@ services:
         max-size: "1g" 
 ```
 
-- 配置如下
+- 配置文件 config/filebeat.docker.yml
 ```yaml
 setup.ilm.enabled: false 
 setup.template.enabled: true 
@@ -65,12 +66,8 @@ output.kafka:
   required_acks: 1 
   compression: gzip 
   max_message_bytes: 1000000 
- 
-output.elasticsearch: 
-  enabled: false 
-  hosts: ["127.0.0.1:9200"] 
-  index: "qingserverlog_%{+yyyy.MM.dd}" 
- 
+
+  
 filebeat.inputs: 
 - type: log 
   paths: 
@@ -80,8 +77,10 @@ filebeat.inputs:
     service: qingServer 
 ```
 
+### Logstash 数据管道
+- logstash 负责消费kafka的数据到es
+- docker-compose文件如下：
 
-- Logstash 数据管道 配置如下
 ```yaml
 version: '3.3' 
 services: 
@@ -103,7 +102,8 @@ services:
       options: 
         max-size: "1g" 
 ```
-pipline/logstash.conf
+
+- 配置文件 pipline/logstash.conf
 ```yaml
 input { 
   kafka { 
@@ -126,7 +126,7 @@ output {
 } 
 ```
 
-config/logstash.yml
+- 配置文件 config/logstash.yml
 ```yaml
 http.host: "0.0.0.0" 
 monitoring.elasticsearch.hosts: [ "http://127.0.0.1:9200" ] 
