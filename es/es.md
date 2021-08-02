@@ -141,7 +141,7 @@ monitoring.elasticsearch.hosts: [ "http://127.0.0.1:9200" ]
 
 ### 存储与看板
 - 存储就是用es，看板就是kibana
-- es存在的问题就是，官方提供的加密认证x-pack收费。所以我就不用了，简单用nginx对kibana做个认证
+- es存在的问题就是，官方提供的加密认证x-pack收费，所以我就不用了。用nginx+htpasswd对kibana做个认证
 - 过期日志的清理，index结尾都是根据日期命名的，所以直接调用es的接口模糊删除索引，然后把任务加入cron
 - es的docker-compose文件如下。es是单点的
 
@@ -188,7 +188,8 @@ services:
         max-size: "1g" 
 ```
 
-- kibana的nginx+htpasswd认证
+### kibana认证(nginx+htpasswd)
+- nginx配置
 ```yaml
 server { 
            server_name localhost; 
@@ -201,6 +202,12 @@ server {
 } 
 ```
 
+- [htpasswd在线生成](https://tool.oschina.net/htpasswd)
+- 选择（all Unix service）
+- /etc/nginx/pwddb/kibana.db 文件内容如下(账号：admin 密码：admin)
+```yaml
+admin:xHkfzJQEbKpII
+```
 
 ### 清理过期日志
 - 没有什么好的办法 调用es的删除index的接口，编写脚本，任务加入crontab
